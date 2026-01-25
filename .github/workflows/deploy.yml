@@ -69,11 +69,4 @@ jobs:
 
       # Disponibilizar o Endpoint da Aplicação
       - name: Get Application Endpoint
-        run: |
-          SERVICE_DNS=""
-          while [ -z $SERVICE_DNS ]; do
-            echo "Waiting for LoadBalancer IP..."
-            SERVICE_DNS=$(kubectl get svc -n mecanica-hermes-${{ inputs.environment }})
-            [ -z "$SERVICE_DNS" ] && sleep 10
-          done
-          echo "Application is available at http://$SERVICE_DNS"
+        run: echo kubectl get svc -n mecanica-hermes-${{ inputs.environment }}
