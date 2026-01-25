@@ -78,24 +78,24 @@ aws eks update-kubeconfig --name mechermes-eks
 
 ### Criação do Namespace
 
+Define ambiente de Homologação ou Produção
+
 ```bash
-kubectl apply -f k8s/overlays/${{ inputs.environment }}/namespace.yaml
+$ENVIRONMENT="prd" ou "hml"
+```
+
+```bash
+kubectl apply -f k8s/overlays/$ENVIRONMENT/namespace.yaml
 ```
 
 ---
 
 ### Criação da Secret
 
-Define ambiente de Homologação ou Produção
-
-```bash
-$DB_ENVIRONMENT="prd" ou "hml"
-```
-
 Extraia o endpoint do database
 
 ```bash
-$DB_ENDPOINT=aws rds describe-db-instances --db-instance-identifier mechermes-$DB_ENVIRONMENT-rds --query "DBInstances[0].Endpoint.Address" --output text
+$DB_ENDPOINT=aws rds describe-db-instances --db-instance-identifier mechermes-$ENVIRONMENT-rds --query "DBInstances[0].Endpoint.Address" --output text
 ```
 
 Extraia o ARN do database
@@ -113,7 +113,7 @@ $DB_PASSWORD=aws secretsmanager get-secret-value --secret-id $DB_ARN --query Sec
 Crie a Secret no Cluster
 
 ```bash
-kubectl create secret generic app-secret --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=mechermesdb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" --from-literal=Jwt__Key="THATSmyAw3SomeSecretTokenThatNeedsToCh@angeBeforeDeploy" --from-literal=EmailSenderOptions__Password="xFCsMj6a4NWbZgr5" -n mecanica-hermes-$DB_ENVIRONMENT
+kubectl create secret generic app-secret --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=mechermesdb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" --from-literal=Jwt__Key="THATSmyAw3SomeSecretTokenThatNeedsToCh@angeBeforeDeploy" --from-literal=EmailSenderOptions__Password="xFCsMj6a4NWbZgr5" -n mecanica-hermes-$ENVIRONMENT
 ```
 
 ---
@@ -123,7 +123,7 @@ kubectl create secret generic app-secret --from-literal=ConnectionStrings__Defau
 Deploy no ambiente selecionado
 
 ```bash
-kubectl apply -k k8s/overlays/$DB_ENVIRONMENT
+kubectl apply -k k8s/overlays/$ENVIRONMENT
 ```
 
 ---
@@ -131,7 +131,7 @@ kubectl apply -k k8s/overlays/$DB_ENVIRONMENT
 ### Extração do Endpoint da API
 
 ```bash
-kubectl get svc -n mecanica-hermes-$DB_ENVIRONMENT
+kubectl get svc -n mecanica-hermes-$ENVIRONMENT
 ```
 
 ---
