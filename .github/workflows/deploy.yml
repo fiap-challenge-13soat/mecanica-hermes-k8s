@@ -51,6 +51,10 @@ jobs:
       - name: Configure Kubeconfig
         run: aws eks update-kubeconfig --name mechermes-eks
 
+      # Create Namespace in the selected environment
+      - name: Create Namespace
+        run: kubectl apply -f ./overlays/${{ inputs.environment }}/namespace.yaml
+
       # Create Secrets to deploy applications
       - name: Create Secrets
         run: |
