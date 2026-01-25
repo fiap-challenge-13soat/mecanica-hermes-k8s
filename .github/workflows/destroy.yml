@@ -1,0 +1,56 @@
+name: Destroy - Kubernetes Cluster
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "hml"
+        type: choice
+        options:
+          - hml
+          - prd
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: "Destroy - Kubernetes Cluster"
+    runs-on: ubuntu-latest
+    environment: aws
+    env:
+      ENVIRONMENT: ${{ inputs.environment || vars.environment }}
+
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        working-directory: ./k8s
+        shell: bash
+
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Configure AWS Credentials for AWS CLI and other AWS SDKs and tools
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ vars.AWS_DEFAULT_REGION }}
+
+      # Install Kubectl
+      - name: Install Kubectl
+        uses: azure/setup-kubectl@v4
+
+      # Configure Kubeconfig to connect to EKS Cluster
+      - name: Configure Kubeconfig
+        run: aws eks update-kubeconfig --name mechermes-eks
+
+      # Apply Kubernetes - Destroy Applications
+      - name: Destroy Kubernetes Applications
+        run: kubectl delete -k ./overlays/${{ inputs.environment }}

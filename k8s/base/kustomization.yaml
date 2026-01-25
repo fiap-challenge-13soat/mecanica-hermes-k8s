@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - mailpit/configmap.yaml
+  - mailpit/deployment.yaml
+  - mechermes-api/configmap.yaml
+  - mechermes-api/deployment.yaml
+  - mechermes-api/hpa.yaml
+  - mechermes-api/secret.yaml
+  - mechermes-api/service.yaml

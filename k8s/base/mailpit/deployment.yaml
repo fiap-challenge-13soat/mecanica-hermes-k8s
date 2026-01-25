@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mailpit
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mailpit
+  template:
+    metadata:
+      labels:
+        app: mailpit
+    spec:
+      volumes:
+        - name: mailpit
+          emptyDir: {}
+      containers:
+        - name: mailpit-sidecar
+          image: axllent/mailpit:v1.28
+
+          ports:
+            - containerPort: 1025
+              name: smtp
+            - containerPort: 8025
+              name: http
+
+          volumeMounts:
+            - name: mailpit
+              mountPath: /data
+
+          livenessProbe:
+            httpGet:
+              path: "/api/v1/info"
+              port: 8025
+            initialDelaySeconds: 2
+            periodSeconds: 2
+            timeoutSeconds: 5
+            failureThreshold: 10
+
+          envFrom:
+            - configMapRef:
+                name: mailpit-config
+            - secretRef:
+                name: app-secret
+          env:
+            - name: MP_SMTP_AUTH
+              value: "$(EmailSenderOptions__UserName):$(EmailSenderOptions__Password)"
+
+          resources:
+            requests:
+              cpu: 60m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 200Mi

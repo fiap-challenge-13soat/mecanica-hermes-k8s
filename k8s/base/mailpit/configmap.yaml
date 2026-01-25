@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mailpit-config
+data:
+  MP_DATABASE: "/data/mailpit.db"
+  MP_MAX_AGE: 7d
+  TZ: "America/Sao_Paulo"
+  MP_SMTP_AUTH_ALLOW_INSECURE: "true"
