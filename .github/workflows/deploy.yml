@@ -57,7 +57,7 @@ jobs:
           $DB_ENDPOINT=aws rds describe-db-instances --db-instance-identifier mechermes-${{ inputs.environment }}-rds --query "DBInstances[0].Endpoint.Address" --output text
           $DB_ARN=aws rds describe-db-instances --db-instance-identifier mechermes-${{ inputs.environment }}-rds --query "DBInstances[0].MasterUserSecret.SecretArn" --output text
           $DB_PASSWORD=aws secretsmanager get-secret-value --secret-id $DB_ARN --query SecretString --output text | ConvertFrom-Json | Select-Object -ExpandProperty password
-          kubectl create secret generic app-secret --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=mechermesdb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" --from-literal=Jwt__Key="${{ secrets.JWT_KEY }}" --from-literal=EmailSenderOptions__Password="${{ secrets.EMAIL_PASSWORD }}" -n mecanica-hermes
+          kubectl create secret generic app-secret --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=mechermesdb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" --from-literal=Jwt__Key="${{ secrets.JWT_KEY }}" --from-literal=EmailSenderOptions__Password="${{ secrets.EMAIL_PASSWORD }}" -n mecanica-hermes-${{ inputs.environment }}
 
       # Deploy Applications in the selected environment
       - name: Deploy to Kubernetes
