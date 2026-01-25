@@ -73,7 +73,7 @@ jobs:
           SERVICE_DNS=""
           while [ -z $SERVICE_DNS ]; do
             echo "Waiting for LoadBalancer IP..."
-            SERVICE_DNS=$(kubectl get svc mecanica-hermes-api-service -n mecanica-hermes-${{ inputs.environment }} --template="{{range .status.loadBalancer.ingress}}{{.ip}}{{end}}")
+            SERVICE_DNS=$(kubectl get svc -n mecanica-hermes-${{ inputs.environment }} --template="{{range .status.loadBalancer.ingress}}{{.ip}}{{end}}")
             [ -z "$SERVICE_DNS" ] && sleep 10
           done
           echo "Application is available at http://$SERVICE_DNS"
