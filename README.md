@@ -76,12 +76,20 @@ Configure o seu AWS com o Kubectl.
 aws eks update-kubeconfig --name mechermes-eks
 ```
 
+### Criação do Namespace
+
+```bash
+kubectl apply -f k8s/overlays/${{ inputs.environment }}/namespace.yaml
+```
+
+---
+
 ### Criação da Secret
 
 Define ambiente de Homologação ou Produção
 
 ```bash
-$DB_ENVIRONMENT=(prd ou hml)
+$DB_ENVIRONMENT="prd" ou "hml"
 ```
 
 Extraia o endpoint do database
