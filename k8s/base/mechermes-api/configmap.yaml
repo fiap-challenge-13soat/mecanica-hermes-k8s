@@ -8,7 +8,7 @@ data:
   Logging__LogLevel__Default: "Information"
   Jwt__Issuer: "MecanicaHermes"
   EmailSenderOptions__Enabled: "true"
-  EmailSenderOptions__SmtpServer: "localhost"
+  EmailSenderOptions__SmtpServer: "mailpit"
   EmailSenderOptions__SmtpPort: "1025"
   EmailSenderOptions__SslRequired: "false"
   EmailSenderOptions__UserName: "postmaster@fiap.com"

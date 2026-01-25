@@ -3,8 +3,8 @@ kind: Kustomization
 resources:
   - mailpit/configmap.yaml
   - mailpit/deployment.yaml
+  - mailpit/service.yaml
   - mechermes-api/configmap.yaml
   - mechermes-api/deployment.yaml
   - mechermes-api/hpa.yaml
-  - mechermes-api/secret.yaml
   - mechermes-api/service.yaml
