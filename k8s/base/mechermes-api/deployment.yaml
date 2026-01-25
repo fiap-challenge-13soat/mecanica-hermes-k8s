@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mecanica-hermes-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mecanica-hermes-api
+  template:
+    metadata:
+      name: mecanica-hermes-api
+      labels:
+        app: mecanica-hermes-api
+    spec:
+      containers:
+        - name: mecanica-hermes-api
+          image: mechermes/mecanica-hermes-api:main
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: mecanica-hermes-api-config
+            - secretRef:
+                name: app-secret
+
+          readinessProbe:
+            httpGet:
+              path: "/health"
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+
+          livenessProbe:
+            httpGet:
+              path: "/health"
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 60
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

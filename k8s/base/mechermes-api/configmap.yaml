@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mecanica-hermes-api-config
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_URLS: "http://+:8080"
+  Logging__LogLevel__Default: "Information"
+  Jwt__Issuer: "MecanicaHermes"
+  EmailSenderOptions__Enabled: "true"
+  EmailSenderOptions__SmtpServer: "mailpit"
+  EmailSenderOptions__SmtpPort: "1025"
+  EmailSenderOptions__SslRequired: "false"
+  EmailSenderOptions__UserName: "postmaster@fiap.com"
+  EmailSenderOptions__SenderInformation__Name: "Mecânica Hermes"
+  EmailSenderOptions__SenderInformation__Address: "postmaster@fiap.com"
