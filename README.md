@@ -120,6 +120,14 @@ flowchart TB
 
 ---
 
+Para gerar nova Key e Token use o comando:
+
+```bash
+aws sts get-session-token
+```
+
+---
+
 ### Deploy Environment
 
 ---
