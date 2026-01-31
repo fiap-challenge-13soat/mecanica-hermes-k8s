@@ -4,6 +4,30 @@ Este repositório é responsável por realizar o deploy do projeto.
 
 ---
 
+## Tecnologias Utilizadas
+
+---
+
+![Kubernetes](https://img.shields.io/badge/Kubernetes-Orquestra%C3%A7%C3%A3o-326CE5?logo=kubernetes&logoColor=white)
+![Kustomize](https://img.shields.io/badge/Kustomize-Config%20Management-4A86CF?logo=kustomize&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-Cloud-232F3E?logo=amazonaws&logoColor=white)
+![Amazon EKS](https://img.shields.io/badge/Amazon%20EKS-Kubernetes-FF9900?logo=amazon-eks&logoColor=white)
+![Amazon RDS](https://img.shields.io/badge/Amazon%20RDS-PostgreSQL-527FFF?logo=amazonrds&logoColor=white)
+![Kubectl](https://img.shields.io/badge/kubectl-CLI-326CE5?logo=kubernetes&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-CI/CD-2088FF?logo=githubactions&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Images-2496ED?logo=docker&logoColor=white)
+
+- **Kubernetes** para orquestração das aplicações e recursos de cluster.
+- **Kustomize** para sobreposição de ambientes (hml/prd) e padronização de manifests.
+- **AWS** como provedor de nuvem.
+- **Amazon EKS** como cluster Kubernetes gerenciado.
+- **Amazon RDS (PostgreSQL)** como banco de dados consumido pela API.
+- **kubectl** para aplicação e gerenciamento dos manifests.
+- **GitHub Actions** para execução da pipeline de deploy/destroy.
+- **Docker** para distribuição das imagens das aplicações.
+
+---
+
 ## Arquitetura dos Projetos de Infra
 
 Nossa infraestrutura para disponibilizar um ambiente completo e funcional é composta por três passos sequenciais que são executados em diferentes repositórios:
