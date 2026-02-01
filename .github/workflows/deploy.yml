@@ -69,4 +69,22 @@ jobs:
 
       # Disponibilizar o Endpoint da Aplicação
       - name: Get Application Endpoint
-        run: kubectl get svc -n mecanica-hermes-${{ inputs.environment }}
+        run: |
+          attempts=0
+          max_attempts=10
+          while true; do
+            external_ip=$(kubectl get svc mecanica-hermes-api -n mecanica-hermes-${{ inputs.environment }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+            if [ -n "$external_ip" ] && [ "$external_ip" != "<pending>" ]; then
+              echo "External IP disponível: $external_ip"
+              break
+            fi
+            attempts=$((attempts + 1))
+            if [ "$attempts" -ge "$max_attempts" ]; then
+              echo "External IP não ficou disponível após $max_attempts tentativas."
+              kubectl get svc -n mecanica-hermes-${{ inputs.environment }}
+              exit 1
+            fi
+            echo "External IP ainda não disponível. Tentativa $attempts/$max_attempts. Aguardando 3s..."
+            sleep 3
+          done
+          kubectl get svc -n mecanica-hermes-${{ inputs.environment }}
