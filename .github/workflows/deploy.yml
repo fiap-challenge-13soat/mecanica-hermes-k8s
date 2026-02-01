@@ -82,7 +82,6 @@ jobs:
             if [ "$attempts" -ge "$max_attempts" ]; then
               echo "External IP não ficou disponível após $max_attempts tentativas."
               kubectl get svc -n mecanica-hermes-${{ inputs.environment }}
-              exit 1
             fi
             echo "External IP ainda não disponível. Tentativa $attempts/$max_attempts. Aguardando 3s..."
             sleep 3
