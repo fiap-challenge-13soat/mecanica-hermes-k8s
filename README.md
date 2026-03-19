@@ -65,12 +65,9 @@ flowchart TB
    Namespace["Namespace: mecanica-hermes-<env>"]
    Secret["Secret: app-secret"]
    CMApi["ConfigMap: mecanica-hermes-api-config"]
-   CMMail["ConfigMap: mailpit-config"]
    ApiDeploy["Deployment: mecanica-hermes-api"]
    HPA["HPA: mecanica-hermes-api"]
    ApiSvc["Service: mecanica-hermes-api (LoadBalancer)"]
-   MailDeploy["Deployment: mailpit"]
-   MailSvc["Service: mailpit (ClusterIP)"]
   end
 
   TF1 --> VPC
@@ -89,18 +86,13 @@ flowchart TB
   EKS --> Kustomize
   Kustomize --> Namespace
   Namespace --> ApiDeploy
-  Namespace --> MailDeploy
   Secret --> ApiDeploy
-  Secret --> MailDeploy
   CMApi --> ApiDeploy
-  CMMail --> MailDeploy
   ApiDeploy --> HPA
   ApiDeploy --> ApiSvc
-  MailDeploy --> MailSvc
 
   ApiSvc --> Clients["Clientes externos"]
   ApiDeploy --> RDS
-  ApiDeploy --> MailSvc
 ```
 
 ## Execução pela Pipeline
@@ -212,7 +204,7 @@ $DB_PASSWORD=aws secretsmanager get-secret-value --secret-id $DB_ARN --query Sec
 Crie a Secret no Cluster
 
 ```bash
-kubectl create secret generic app-secret --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=mechermesdb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" --from-literal=Jwt__Key="THATSmyAw3SomeSecretTokenThatNeedsToCh@angeBeforeDeploy" --from-literal=EmailSenderOptions__Password="xFCsMj6a4NWbZgr5" -n mecanica-hermes-$ENVIRONMENT
+kubectl create secret generic app-secret --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=mechermesdb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" --from-literal=Jwt__Key="THATSmyAw3SomeSecretTokenThatNeedsToCh@angeBeforeDeploy" --from-literal=EmailSender__SenderInformation__Name="xFCsMj6a4NWbZgr5" -n mecanica-hermes-$ENVIRONMENT
 ```
 
 ---
