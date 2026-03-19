@@ -204,7 +204,7 @@ $DB_PASSWORD=aws secretsmanager get-secret-value --secret-id $DB_ARN --query Sec
 Crie a Secret no Cluster
 
 ```bash
-kubectl create secret generic app-secret --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=mechermesdb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" --from-literal=Jwt__Key="THATSmyAw3SomeSecretTokenThatNeedsToCh@angeBeforeDeploy" --from-literal=EmailSender__SenderInformation__Name="xFCsMj6a4NWbZgr5" -n mecanica-hermes-$ENVIRONMENT
+kubectl create secret generic app-secret --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=mechermesdb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" --from-literal=Jwt__Key="THATSmyAw3SomeSecretTokenThatNeedsToCh@angeBeforeDeploy" --from-literal=EmailSender__Password="xFCsMj6a4NWbZgr5" -n mecanica-hermes-$ENVIRONMENT
 ```
 
 ---

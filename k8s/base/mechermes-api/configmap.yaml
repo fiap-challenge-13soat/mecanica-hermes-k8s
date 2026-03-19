@@ -10,7 +10,7 @@ data:
   EmailSender__Enabled: "true"
   EmailSender__SmtpServer: "smtp.gmail.com"
   EmailSender__SmtpPort: "465"
-  EmailSender__SslRequired: "false"
+  EmailSender__SslRequired: "true"
   EmailSender__UserName: "rogeriosoftplan@gmail.com"
   EmailSender__SenderInformation__Name: "Mecânica Hermes"
   EmailSender__SenderInformation__Address: "rogeriosoftplan@gmail.com"
