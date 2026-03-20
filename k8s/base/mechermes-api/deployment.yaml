@@ -16,6 +16,7 @@ spec:
       containers:
         - name: mecanica-hermes-api
           image: mechermes/mecanica-hermes-api:main
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:
