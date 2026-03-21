@@ -69,6 +69,7 @@ jobs:
       - name: Cleanup conflicting webhook resources
         run: |
           kubectl delete mutatingwebhookconfiguration newrelic-bundle-nri-metadata-injection --ignore-not-found=true
+          kubectl delete deployment newrelic-bundle-nri-kube-events -n newrelic --ignore-not-found=true
           sleep 5
         continue-on-error: true
     
