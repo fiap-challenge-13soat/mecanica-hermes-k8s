@@ -66,69 +66,6 @@ jobs:
       - name: Add New Relic Helm repo
         run: helm repo add newrelic https://helm-charts.newrelic.com && helm repo update
     
-      # Fetch RDS credentials early — reused by Helm (nri-postgresql) and app-secret
-      - name: Fetch RDS credentials
-        run: |
-          DB_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier mechermes-${{ inputs.environment }}-rds --query "DBInstances[0].Endpoint.Address" --output text)
-          DB_ARN=$(aws rds describe-db-instances --db-instance-identifier mechermes-${{ inputs.environment }}-rds --query "DBInstances[0].MasterUserSecret.SecretArn" --output text)
-          DB_PASSWORD=$(aws secretsmanager get-secret-value --secret-id "$DB_ARN" --query SecretString --output text | jq -r '.password')
-          echo "DB_ENDPOINT=$DB_ENDPOINT" >> "$GITHUB_ENV"
-          echo "DB_PASSWORD=$DB_PASSWORD" >> "$GITHUB_ENV"
-
-      # Create read-only monitoring user for New Relic nri-postgresql integration
-      - name: Create New Relic monitoring DB user
-        run: |
-          cat <<EOF | kubectl apply -f -
-          apiVersion: v1
-          kind: ConfigMap
-          metadata:
-            name: newrelic-db-setup
-            namespace: mecanica-hermes-${{ inputs.environment }}
-          data:
-            setup.sql: |
-              DO \$\$
-              BEGIN
-                IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'newrelic_monitor') THEN
-                  CREATE ROLE newrelic_monitor WITH LOGIN PASSWORD '$DB_PASSWORD' NOSUPERUSER NOCREATEDB NOCREATEROLE;
-                END IF;
-              END
-              \$\$;
-              GRANT CONNECT ON DATABASE mechermesdb TO newrelic_monitor;
-              GRANT USAGE ON SCHEMA public TO newrelic_monitor;
-              GRANT SELECT ON ALL TABLES IN SCHEMA public TO newrelic_monitor;
-              ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO newrelic_monitor;
-              GRANT pg_monitor TO newrelic_monitor;
-          EOF
-          
-          # Run SQL script
-          kubectl run psql-newrelic-setup --restart=Never \
-            --namespace mecanica-hermes-${{ inputs.environment }} \
-            --image=postgres:17-alpine \
-            --env="PGPASSWORD=$DB_PASSWORD" \
-            --overrides="{
-              \"spec\": {
-                \"containers\": [{
-                  \"name\": \"psql-newrelic-setup\",
-                  \"image\": \"postgres:17-alpine\",
-                  \"command\": [\"psql\", \"-h\", \"$DB_ENDPOINT\", \"-U\", \"postgres\", \"-d\", \"mechermesdb\", \"-f\", \"/config/setup.sql\"],
-                  \"env\": [{\"name\": \"PGPASSWORD\", \"value\": \"$DB_PASSWORD\"}],
-                  \"volumeMounts\": [{\"name\": \"config\", \"mountPath\": \"/config\"}]
-                }],
-                \"volumes\": [{
-                  \"name\": \"config\",
-                  \"configMap\": {\"name\": \"newrelic-db-setup\"}
-                }],
-                \"restartPolicy\": \"Never\"
-              }
-            }"
-          
-          # Wait for pod to complete
-          kubectl wait --for=condition=complete --timeout=60s pod/psql-newrelic-setup -n mecanica-hermes-${{ inputs.environment }} || true
-          # Clean up
-          kubectl delete pod psql-newrelic-setup -n mecanica-hermes-${{ inputs.environment }} --ignore-not-found=true
-          kubectl delete configmap newrelic-db-setup -n mecanica-hermes-${{ inputs.environment }} --ignore-not-found=true
-        continue-on-error: true
-
       - name: Cleanup conflicting webhook resources
         run: |
           kubectl delete mutatingwebhookconfiguration newrelic-bundle-nri-metadata-injection --ignore-not-found=true
@@ -142,10 +79,7 @@ jobs:
             --namespace newrelic \
             --create-namespace \
             --values ./base/newrelic/helm-values.yaml \
-            --set global.licenseKey=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
-            --set 'newrelic-infrastructure.integrations.nri-postgresql-config.integrations[0].env.HOSTNAME'="$DB_ENDPOINT" \
-            --set 'newrelic-infrastructure.integrations.nri-postgresql-config.integrations[0].env.USERNAME'=newrelic_monitor \
-            --set 'newrelic-infrastructure.integrations.nri-postgresql-config.integrations[0].env.PASSWORD'="$DB_PASSWORD"
+            --set global.licenseKey=${{ secrets.NEW_RELIC_LICENSE_KEY }}
     
       - name: Create New Relic license secret in app namespace
         run: |
@@ -158,6 +92,9 @@ jobs:
       # Create Secrets to deploy applications
       - name: Create Secrets
         run: |
+          DB_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier mechermes-${{ inputs.environment }}-rds --query "DBInstances[0].Endpoint.Address" --output text)
+          DB_ARN=$(aws rds describe-db-instances --db-instance-identifier mechermes-${{ inputs.environment }}-rds --query "DBInstances[0].MasterUserSecret.SecretArn" --output text)
+          DB_PASSWORD=$(aws secretsmanager get-secret-value --secret-id "$DB_ARN" --query SecretString --output text | jq -r '.password')
           kubectl create secret generic app-secret \
             --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=mechermesdb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" \
             --from-literal=Jwt__Key="${{ secrets.JWT_KEY }}" \
