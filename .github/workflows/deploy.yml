@@ -78,30 +78,55 @@ jobs:
       # Create read-only monitoring user for New Relic nri-postgresql integration
       - name: Create New Relic monitoring DB user
         run: |
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: newrelic-db-setup
+            namespace: mecanica-hermes-${{ inputs.environment }}
+          data:
+            setup.sql: |
+              DO \$\$
+              BEGIN
+                IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'newrelic_monitor') THEN
+                  CREATE ROLE newrelic_monitor WITH LOGIN PASSWORD '$DB_PASSWORD' NOSUPERUSER NOCREATEDB NOCREATEROLE;
+                END IF;
+              END
+              \$\$;
+              GRANT CONNECT ON DATABASE mechermesdb TO newrelic_monitor;
+              GRANT USAGE ON SCHEMA public TO newrelic_monitor;
+              GRANT SELECT ON ALL TABLES IN SCHEMA public TO newrelic_monitor;
+              ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO newrelic_monitor;
+              GRANT pg_monitor TO newrelic_monitor;
+          EOF
+          
+          # Run SQL script
           kubectl run psql-newrelic-setup --restart=Never \
             --namespace mecanica-hermes-${{ inputs.environment }} \
             --image=postgres:17-alpine \
             --env="PGPASSWORD=$DB_PASSWORD" \
-            --command -- sh -c "
-              psql -h '$DB_ENDPOINT' -U postgres -d mechermesdb -c \"
-                DO \\\$\\\$
-                BEGIN
-                  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'newrelic_monitor') THEN
-                    CREATE ROLE newrelic_monitor WITH LOGIN PASSWORD '$DB_PASSWORD' NOSUPERUSER NOCREATEDB NOCREATEROLE;
-                  END IF;
-                END
-                \\\$\\\$;
-                GRANT CONNECT ON DATABASE mechermesdb TO newrelic_monitor;
-                GRANT USAGE ON SCHEMA public TO newrelic_monitor;
-                GRANT SELECT ON ALL TABLES IN SCHEMA public TO newrelic_monitor;
-                ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO newrelic_monitor;
-                GRANT pg_monitor TO newrelic_monitor;
-              \"
-            "
+            --overrides="{
+              \"spec\": {
+                \"containers\": [{
+                  \"name\": \"psql-newrelic-setup\",
+                  \"image\": \"postgres:17-alpine\",
+                  \"command\": [\"psql\", \"-h\", \"$DB_ENDPOINT\", \"-U\", \"postgres\", \"-d\", \"mechermesdb\", \"-f\", \"/config/setup.sql\"],
+                  \"env\": [{\"name\": \"PGPASSWORD\", \"value\": \"$DB_PASSWORD\"}],
+                  \"volumeMounts\": [{\"name\": \"config\", \"mountPath\": \"/config\"}]
+                }],
+                \"volumes\": [{
+                  \"name\": \"config\",
+                  \"configMap\": {\"name\": \"newrelic-db-setup\"}
+                }],
+                \"restartPolicy\": \"Never\"
+              }
+            }"
+          
           # Wait for pod to complete
           kubectl wait --for=condition=complete --timeout=60s pod/psql-newrelic-setup -n mecanica-hermes-${{ inputs.environment }} || true
-          # Clean up pod
+          # Clean up
           kubectl delete pod psql-newrelic-setup -n mecanica-hermes-${{ inputs.environment }} --ignore-not-found=true
+          kubectl delete configmap newrelic-db-setup -n mecanica-hermes-${{ inputs.environment }} --ignore-not-found=true
         continue-on-error: true
 
       - name: Cleanup conflicting webhook resources
