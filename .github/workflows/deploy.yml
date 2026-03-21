@@ -55,6 +55,28 @@ jobs:
       - name: Create Namespace
         run: kubectl apply -f ./overlays/${{ inputs.environment }}/namespace.yaml
 
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Add New Relic Helm repo
+        run: helm repo add newrelic https://helm-charts.newrelic.com && helm repo update
+    
+      - name: Install/upgrade nri-bundle
+        run: |
+          helm upgrade --install newrelic-bundle newrelic/nri-bundle \
+            --namespace newrelic \
+            --create-namespace \
+            --values ./base/newrelic/helm-values.yaml \
+            --set global.licenseKey=${{ secrets.NEW_RELIC_LICENSE_KEY }}
+    
+      - name: Create New Relic license secret in app namespace
+        run: |
+          kubectl create secret generic newrelic-license-secret \
+            --from-literal=license-key=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
+            --from-literal=otlp-header="api-key=${{ secrets.NEW_RELIC_LICENSE_KEY }}" \
+            --namespace mecanica-hermes \
+            --dry-run=client -o yaml | kubectl apply -f -
+
       # Create Secrets to deploy applications
       - name: Create Secrets
         run: |
