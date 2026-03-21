@@ -74,6 +74,14 @@ jobs:
             --create-namespace \
             --values ./base/newrelic/helm-values.yaml \
             --set global.licenseKey=${{ secrets.NEW_RELIC_LICENSE_KEY }}
+    
+      - name: Create New Relic license secret in app namespace
+        run: |
+          kubectl create secret generic newrelic-license-secret \
+            --from-literal=license-key=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
+            --from-literal=otlp-header="api-key=${{ secrets.NEW_RELIC_LICENSE_KEY }}" \
+            --namespace mecanica-hermes-${{ inputs.environment }} \
+            --dry-run=client -o yaml | kubectl apply -f -
 
       # Create Secrets to deploy applications
       - name: Create Secrets
@@ -87,8 +95,7 @@ jobs:
             --from-literal=EmailSender__Password="${{ secrets.EMAIL_PASSWORD }}" \
             --from-literal=MediatR__LicenseKey="${{ secrets.MEDIATR_LICENSE_KEY }}" \
             --from-literal=AutoMapper__LicenseKey="${{ secrets.AUTOMAPPER_LICENSE_KEY }}" \
-            --from-literal=license-key=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
-            --from-literal=otlp-header="api-key=${{ secrets.NEW_RELIC_LICENSE_KEY }}" \
+            --from-literal=NEW_RELIC_LICENSE_KEY=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
             -n mecanica-hermes-${{ inputs.environment }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
