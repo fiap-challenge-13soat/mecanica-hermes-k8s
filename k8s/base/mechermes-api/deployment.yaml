@@ -38,6 +38,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: newrelic-license-secret
+                  key: otlp-header
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "service.instance.id=$(MY_POD_NAME),service.namespace=$(MY_POD_NAMESPACE),k8s.pod.name=$(MY_POD_NAME),k8s.namespace.name=$(MY_POD_NAMESPACE),k8s.node.name=$(MY_NODE_NAME)"
 
@@ -45,6 +50,7 @@ spec:
             httpGet:
               path: "/healthz/live"
               port: 8080
+            initialDelaySeconds: 60
             failureThreshold: 30
             periodSeconds: 5
 
@@ -52,7 +58,7 @@ spec:
             httpGet:
               path: "/healthz/live"
               port: 8080
-            initialDelaySeconds: 0
+            initialDelaySeconds: 20
             periodSeconds: 20
             failureThreshold: 3
             timeoutSeconds: 5
@@ -61,7 +67,7 @@ spec:
             httpGet:
               path: "/healthz/ready"
               port: 8080
-            initialDelaySeconds: 0
+            initialDelaySeconds: 20
             periodSeconds: 10
             failureThreshold: 3
             timeoutSeconds: 5
