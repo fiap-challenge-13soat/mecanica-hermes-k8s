@@ -17,5 +17,5 @@ data:
   APP__BASE_URL: "http://a0c78307c63a44e3e87714ef57c3c241-1543708464.us-east-1.elb.amazonaws.com"
   AUTH__AUTHORITY: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_g3gYizcQa"
   AUTH__ISSUER: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_g3gYizcQa"
-  AUTH__CLIENTE_SCOPE: "mechermes-admin/client"
-  AUTH__ADMIN_SCOPE: "mechermes-admin/admin"
+  AUTH__CLIENTE_SCOPE: "mechermes/client"
+  AUTH__ADMIN_SCOPE: "mechermes/admin"
