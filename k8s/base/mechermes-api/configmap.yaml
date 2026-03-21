@@ -19,3 +19,13 @@ data:
   AUTH__ISSUER: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_JQi8ExUDh"
   AUTH__CLIENTE_SCOPE: "mechermes-admin/client"
   AUTH__ADMIN_SCOPE: "mechermes-admin/admin"
+  # OpenTelemetry OTLP export (New Relic)
+  OTEL_SERVICE_NAME: "mecanica-hermes-api"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "https://otlp.nr-data.net"
+  OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+  OTEL_EXPORTER_OTLP_COMPRESSION: "gzip"
+  OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT: "4095"
+  OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: "delta"
+  OTEL_TRACES_EXPORTER: "otlp"
+  OTEL_METRICS_EXPORTER: "otlp"
+  OTEL_LOGS_EXPORTER: "otlp"
