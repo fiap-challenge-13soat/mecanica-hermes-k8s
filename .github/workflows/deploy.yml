@@ -64,6 +64,7 @@ jobs:
       - name: Cleanup conflicting webhook resources
         run: |
           kubectl delete mutatingwebhookconfiguration newrelic-bundle-nri-metadata-injection --ignore-not-found=true
+          sleep 5
         continue-on-error: true
     
       - name: Install/upgrade nri-bundle
@@ -72,8 +73,7 @@ jobs:
             --namespace newrelic \
             --create-namespace \
             --values ./base/newrelic/helm-values.yaml \
-            --set global.licenseKey=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
-            --force-replace
+            --set global.licenseKey=${{ secrets.NEW_RELIC_LICENSE_KEY }}
     
       - name: Create New Relic license secret in app namespace
         run: |
