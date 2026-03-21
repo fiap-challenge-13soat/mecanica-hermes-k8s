@@ -11,6 +11,11 @@ on:
         options:
           - hml
           - prd
+      image_tag:
+        description: "Docker image tag to deploy"
+        required: false
+        default: "main"
+        type: string
 
 permissions:
   contents: read
@@ -61,10 +66,9 @@ jobs:
       - name: Add New Relic Helm repo
         run: helm repo add newrelic https://helm-charts.newrelic.com && helm repo update
     
-      - name: Cleanup conflicting resources
+      - name: Cleanup conflicting webhook resources
         run: |
           kubectl delete mutatingwebhookconfiguration newrelic-bundle-nri-metadata-injection --ignore-not-found=true
-          kubectl delete deployment newrelic-bundle-nri-kube-events -n newrelic --ignore-not-found=true
           sleep 5
         continue-on-error: true
     
@@ -81,7 +85,7 @@ jobs:
           kubectl create secret generic newrelic-license-secret \
             --from-literal=license-key=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
             --from-literal=otlp-header="api-key=${{ secrets.NEW_RELIC_LICENSE_KEY }}" \
-            --namespace mecanica-hermes \
+            --namespace mecanica-hermes-${{ inputs.environment }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
       # Create Secrets to deploy applications
@@ -90,7 +94,21 @@ jobs:
           DB_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier mechermes-${{ inputs.environment }}-rds --query "DBInstances[0].Endpoint.Address" --output text)
           DB_ARN=$(aws rds describe-db-instances --db-instance-identifier mechermes-${{ inputs.environment }}-rds --query "DBInstances[0].MasterUserSecret.SecretArn" --output text)
           DB_PASSWORD=$(aws secretsmanager get-secret-value --secret-id "$DB_ARN" --query SecretString --output text | jq -r '.password')
-          kubectl create secret generic app-secret --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=mechermesdb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" --from-literal=Jwt__Key="${{ secrets.JWT_KEY }}" --from-literal=EmailSender__Password="${{ secrets.EMAIL_PASSWORD }}" --from-literal=MediatR__LicenseKey="${{ secrets.MEDIATR_LICENSE_KEY }}" --from-literal=AutoMapper__LicenseKey="${{ secrets.AUTOMAPPER_LICENSE_KEY }}" -n mecanica-hermes-${{ inputs.environment }} --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create secret generic app-secret \
+            --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=mechermesdb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" \
+            --from-literal=Jwt__Key="${{ secrets.JWT_KEY }}" \
+            --from-literal=EmailSender__Password="${{ secrets.EMAIL_PASSWORD }}" \
+            --from-literal=MediatR__LicenseKey="${{ secrets.MEDIATR_LICENSE_KEY }}" \
+            --from-literal=AutoMapper__LicenseKey="${{ secrets.AUTOMAPPER_LICENSE_KEY }}" \
+            --from-literal=NEW_RELIC_LICENSE_KEY=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
+            -n mecanica-hermes-${{ inputs.environment }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      # Atualiza a tag da imagem no overlay antes do deploy
+      - name: Update image tag
+        run: |
+          cd ./overlays/${{ inputs.environment }}
+          kustomize edit set image mechermes/mecanica-hermes-api=mechermes/mecanica-hermes-api:${{ inputs.image_tag || 'main' }}
 
       # Deploy Applications in the selected environment
       - name: Deploy to Kubernetes
