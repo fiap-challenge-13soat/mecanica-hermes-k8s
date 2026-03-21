@@ -11,6 +11,11 @@ on:
         options:
           - hml
           - prd
+      image_tag:
+        description: "Docker image tag to deploy"
+        required: false
+        default: "main"
+        type: string
 
 permissions:
   contents: read
@@ -98,6 +103,12 @@ jobs:
             --from-literal=NEW_RELIC_LICENSE_KEY=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
             -n mecanica-hermes-${{ inputs.environment }} \
             --dry-run=client -o yaml | kubectl apply -f -
+
+      # Atualiza a tag da imagem no overlay antes do deploy
+      - name: Update image tag
+        run: |
+          cd ./overlays/${{ inputs.environment }}
+          kustomize edit set image mechermes/mecanica-hermes-api=mechermes/mecanica-hermes-api:${{ inputs.image_tag || 'main' }}
 
       # Deploy Applications in the selected environment
       - name: Deploy to Kubernetes

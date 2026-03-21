@@ -6,3 +6,6 @@ commonLabels:
 resources:
   - ../../base
   - namespace.yaml
+images:
+  - name: mechermes/mecanica-hermes-api
+    newTag: main
