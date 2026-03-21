@@ -61,6 +61,13 @@ jobs:
       - name: Add New Relic Helm repo
         run: helm repo add newrelic https://helm-charts.newrelic.com && helm repo update
     
+      - name: Cleanup conflicting resources
+        run: |
+          kubectl delete mutatingwebhookconfiguration newrelic-bundle-nri-metadata-injection --ignore-not-found=true
+          kubectl delete deployment newrelic-bundle-nri-kube-events -n newrelic --ignore-not-found=true
+          sleep 5
+        continue-on-error: true
+    
       - name: Install/upgrade nri-bundle
         run: |
           helm upgrade --install newrelic-bundle newrelic/nri-bundle \
