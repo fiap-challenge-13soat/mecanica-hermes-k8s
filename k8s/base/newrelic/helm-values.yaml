@@ -5,6 +5,25 @@ newrelic-infrastructure:
     podSpec:
       dnsPolicy: ClusterFirstWithHostNet
 
+  # PostgreSQL On-Host Integration (monitors RDS metrics)
+  # HOSTNAME, USERNAME, and PASSWORD are injected at deploy time via Helm --set flags
+  integrations:
+    nri-postgresql-config:
+      integrations:
+        - name: nri-postgresql
+          env:
+            HOSTNAME: ""
+            PORT: "5432"
+            USERNAME: ""
+            PASSWORD: ""
+            DATABASE: "mechermesdb"
+            COLLECTION_LIST: "ALL"
+            ENABLE_SSL: "true"
+            TRUST_SERVER_CERTIFICATE: "true"
+            TIMEOUT: "10"
+          labels:
+            role: postgresql
+
 nri-prometheus:
   # nri-prometheus.enabled -- Install the [`nri-prometheus` chart](https://github.com/newrelic/nri-prometheus/tree/main/charts/nri-prometheus)
   enabled: false
