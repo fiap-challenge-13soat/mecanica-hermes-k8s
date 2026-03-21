@@ -39,35 +39,24 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
 
-          startupProbe:
+          readinessProbe:
             httpGet:
-              path: "/healthz/live"
+              path: "/health"
               port: 8080
-            failureThreshold: 30
-            periodSeconds: 5
+            initialDelaySeconds: 30
+            periodSeconds: 30
 
           livenessProbe:
             httpGet:
-              path: "/healthz/live"
+              path: "/health"
               port: 8080
-            initialDelaySeconds: 0
-            periodSeconds: 20
-            failureThreshold: 3
-            timeoutSeconds: 5
-
-          readinessProbe:
-            httpGet:
-              path: "/healthz/ready"
-              port: 8080
-            initialDelaySeconds: 0
-            periodSeconds: 10
-            failureThreshold: 3
-            timeoutSeconds: 5
+            initialDelaySeconds: 60
+            periodSeconds: 60
 
           resources:
             requests:
               cpu: 100m
               memory: 256Mi
             limits:
-              cpu: 500m
-              memory: 512Mi
+              cpu: 800m
+              memory: 1024Mi
