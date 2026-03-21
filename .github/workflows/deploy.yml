@@ -74,7 +74,7 @@ jobs:
           kubectl create secret generic newrelic-license-secret \
             --from-literal=license-key=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
             --from-literal=otlp-header="api-key=${{ secrets.NEW_RELIC_LICENSE_KEY }}" \
-            --namespace mecanica-hermes \
+            --namespace mecanica-hermes-${{ inputs.environment }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
       # Create Secrets to deploy applications
