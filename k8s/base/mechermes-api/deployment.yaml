@@ -38,13 +38,18 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: MY_CLUSTER_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: mecanica-hermes-api-config
+                  key: MY_CLUSTER_NAME
             - name: OTEL_EXPORTER_OTLP_HEADERS
               valueFrom:
                 secretKeyRef:
                   name: newrelic-license-secret
                   key: otlp-header
             - name: OTEL_RESOURCE_ATTRIBUTES
-              value: "service.instance.id=$(MY_POD_NAME),service.namespace=$(MY_POD_NAMESPACE),k8s.pod.name=$(MY_POD_NAME),k8s.namespace.name=$(MY_POD_NAMESPACE),k8s.node.name=$(MY_NODE_NAME)"
+              value: "service.instance.id=$(MY_POD_NAME),service.namespace=$(MY_POD_NAMESPACE),k8s.pod.name=$(MY_POD_NAME),k8s.namespace.name=$(MY_POD_NAMESPACE),k8s.node.name=$(MY_NODE_NAME),k8s.cluster.name=$(MY_CLUSTER_NAME)"
 
           startupProbe:
             httpGet:
