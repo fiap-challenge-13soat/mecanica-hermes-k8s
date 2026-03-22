@@ -12,6 +12,7 @@ nri-prometheus:
 nri-metadata-injection:
   # nri-metadata-injection.enabled -- Install the [`nri-metadata-injection` chart](https://github.com/newrelic/k8s-metadata-injection/tree/main/charts/nri-metadata-injection)
   enabled: true
+  hostNetwork: false
 
 kube-state-metrics:
   # kube-state-metrics.enabled -- Install the [`kube-state-metrics` chart](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-state-metrics) from the stable helm charts repository.
@@ -23,10 +24,12 @@ kube-state-metrics:
 nri-kube-events:
   # nri-kube-events.enabled -- Install the [`nri-kube-events` chart](https://github.com/newrelic/nri-kube-events/tree/main/charts/nri-kube-events)
   enabled: true
+  hostNetwork: false  # does not need host network; avoids port 8080 conflict with app pods
 
 newrelic-logging:
   # newrelic-logging.enabled -- Install the [`newrelic-logging` chart](https://github.com/newrelic/helm-charts/tree/master/charts/newrelic-logging)
   enabled: true
+  hostNetwork: false
   # fluentBit:
     # -- What path will be mounted to read logs from the node
     # linuxMountPath: /var
