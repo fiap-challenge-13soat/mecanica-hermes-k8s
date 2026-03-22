@@ -63,8 +63,17 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v4
 
-      - name: Add New Relic Helm repo
-        run: helm repo add newrelic https://helm-charts.newrelic.com && helm repo update
+      - name: Add Helm repos
+        run: |
+          helm repo add newrelic https://helm-charts.newrelic.com
+          helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+          helm repo update
+
+      - name: Install/upgrade metrics-server
+        run: |
+          helm upgrade --install metrics-server metrics-server/metrics-server \
+            --namespace kube-system \
+            --set args[0]="--kubelet-insecure-tls"
     
       - name: Cleanup conflicting webhook resources
         run: |
