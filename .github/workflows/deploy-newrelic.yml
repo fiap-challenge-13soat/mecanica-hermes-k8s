@@ -1,0 +1,79 @@
+name: Deploy - New Relic Infrastructure
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: "Deploy New Relic Monitoring"
+    runs-on: ubuntu-latest
+    environment: aws
+
+    defaults:
+      run:
+        working-directory: ./k8s
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ vars.AWS_DEFAULT_REGION }}
+
+      - name: Install Kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure Kubeconfig
+        run: aws eks update-kubeconfig --name mechermes-eks
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Add Helm Repositories
+        run: |
+          helm repo add newrelic https://helm-charts.newrelic.com
+          helm repo update
+
+      - name: Install/upgrade nri-bundle
+        run: |
+          helm upgrade --install newrelic-bundle newrelic/nri-bundle \
+            --namespace newrelic \
+            --create-namespace \
+            --values ./base/newrelic/helm-values.yaml \
+            --set global.licenseKey=${{ secrets.NEW_RELIC_LICENSE_KEY }}
+    
+      - name: Create New Relic license secret in HML namespace
+        run: |
+          kubectl create secret generic newrelic-license-secret \
+            --from-literal=license-key=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
+            --from-literal=otlp-header="api-key=${{ secrets.NEW_RELIC_LICENSE_KEY }}" \
+            --namespace mecanica-hermes-hml \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create New Relic license secret in PRD namespace
+        run: |
+          kubectl create secret generic newrelic-license-secret \
+            --from-literal=license-key=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
+            --from-literal=otlp-header="api-key=${{ secrets.NEW_RELIC_LICENSE_KEY }}" \
+            --namespace mecanica-hermes-prd \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deployment Summary
+        run: |
+          echo "## New Relic Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ New Relic infrastructure deployed to cluster" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Monitoring both HML and PRD namespaces" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Filter by namespace in New Relic:" >> $GITHUB_STEP_SUMMARY
+          echo "- HML: \`namespaceName='mecanica-hermes-hml'\`" >> $GITHUB_STEP_SUMMARY
+          echo "- PRD: \`namespaceName='mecanica-hermes-prd'\`" >> $GITHUB_STEP_SUMMARY
