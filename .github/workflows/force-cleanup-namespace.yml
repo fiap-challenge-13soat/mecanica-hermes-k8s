@@ -1,0 +1,92 @@
+name: Force Cleanup - Stuck Namespace
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment namespace to force cleanup"
+        required: true
+        default: "hml"
+        type: choice
+        options:
+          - hml
+          - prd
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    name: "Force Cleanup Namespace"
+    runs-on: ubuntu-latest
+    environment: aws
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ vars.AWS_DEFAULT_REGION }}
+
+      - name: Install Kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure Kubeconfig
+        run: aws eks update-kubeconfig --name mechermes-eks
+
+      - name: Force cleanup namespace
+        run: |
+          NAMESPACE="mecanica-hermes-${{ inputs.environment }}"
+          
+          echo "Force cleaning namespace: $NAMESPACE"
+          
+          # Remove finalizers from all resources in the namespace
+          echo "Removing finalizers from all resources..."
+          for resource in $(kubectl api-resources --verbs=list --namespaced -o name); do
+            echo "Processing resource type: $resource"
+            kubectl get "$resource" -n "$NAMESPACE" -o name 2>/dev/null | while read obj; do
+              kubectl patch "$obj" -n "$NAMESPACE" -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+            done
+          done
+          
+          # Force delete the namespace by removing its finalizers
+          echo "Removing namespace finalizers..."
+          kubectl get namespace "$NAMESPACE" -o json | \
+            jq '.spec.finalizers = []' | \
+            kubectl replace --raw "/api/v1/namespaces/$NAMESPACE/finalize" -f - || true
+          
+          # Wait a moment for cleanup
+          sleep 5
+          
+          # Check if namespace still exists
+          if kubectl get namespace "$NAMESPACE" &>/dev/null; then
+            echo "WARNING: Namespace still exists, attempting direct deletion..."
+            kubectl delete namespace "$NAMESPACE" --force --grace-period=0 --ignore-not-found=true || true
+          else
+            echo "✓ Namespace successfully removed"
+          fi
+          
+          # Recreate the namespace
+          echo "Recreating namespace..."
+          kubectl create namespace "$NAMESPACE" || echo "Namespace already exists"
+          
+          # Add environment label
+          kubectl label namespace "$NAMESPACE" env=${{ inputs.environment }} --overwrite
+          
+          echo "✓ Namespace cleanup and recreation complete"
+
+      - name: Cleanup Summary
+        run: |
+          echo "## Namespace Force Cleanup Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Namespace \`mecanica-hermes-${{ inputs.environment }}\` force cleaned" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All finalizers removed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Namespace recreated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "You can now run the Deploy workflow for ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
