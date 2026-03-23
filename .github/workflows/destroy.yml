@@ -51,6 +51,15 @@ jobs:
       - name: Configure Kubeconfig
         run: aws eks update-kubeconfig --name mechermes-eks
 
+      # Cleanup webhooks before deletion to prevent blocking
+      - name: Cleanup conflicting webhook resources
+        run: |
+          kubectl delete mutatingwebhookconfiguration newrelic-bundle-nri-metadata-injection --ignore-not-found=true
+          kubectl delete validatingwebhookconfiguration --all --ignore-not-found=true
+          sleep 5
+        continue-on-error: true
+
       # Apply Kubernetes - Destroy Applications
       - name: Destroy Kubernetes Applications
-        run: kubectl delete -k ./overlays/${{ inputs.environment }}
+        run: kubectl delete -k ./overlays/${{ inputs.environment }} --timeout=60s --wait=false
+        continue-on-error: true

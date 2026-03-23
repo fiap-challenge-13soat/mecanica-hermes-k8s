@@ -115,7 +115,7 @@ flowchart TB
 | EMAIL_PASSWORD        | Senha para envio de emails                                     |
 | MEDIATR_LICENSE_KEY   | Chave de licença do MediatR (opcional)                         |
 | AUTOMAPPER_LICENSE_KEY| Chave de licença do AutoMapper (opcional)                      |
-| NEW_RELIC_LICENSE_KEY | Chave de licença do New Relic para APM e monitoramento        |
+| NEW_RELIC_LICENSE_KEY | Chave de licença do New Relic para APM e monitoramento         |
 
 ---
 
