@@ -6,6 +6,8 @@ commonLabels:
 resources:
   - ../../base
   - namespace.yaml
-images:
-  - name: mechermes/mecanica-hermes-api
-    newTag: main
+patches:
+  - path: configmap-patch.yaml
+    target:
+      kind: ConfigMap
+      name: mecanica-hermes-api-config

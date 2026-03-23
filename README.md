@@ -14,6 +14,8 @@ Este repositório é responsável por realizar o deploy do projeto.
 ![Amazon EKS](https://img.shields.io/badge/Amazon%20EKS-Kubernetes-FF9900?logo=amazon-eks&logoColor=white)
 ![Amazon RDS](https://img.shields.io/badge/Amazon%20RDS-PostgreSQL-527FFF?logo=amazonrds&logoColor=white)
 ![Kubectl](https://img.shields.io/badge/kubectl-CLI-326CE5?logo=kubernetes&logoColor=white)
+![Helm](https://img.shields.io/badge/Helm-Package%20Manager-0F1689?logo=helm&logoColor=white)
+![New Relic](https://img.shields.io/badge/New%20Relic-Observability-008C99?logo=newrelic&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-CI/CD-2088FF?logo=githubactions&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Images-2496ED?logo=docker&logoColor=white)
 
@@ -23,6 +25,8 @@ Este repositório é responsável por realizar o deploy do projeto.
 - **Amazon EKS** como cluster Kubernetes gerenciado.
 - **Amazon RDS (PostgreSQL)** como banco de dados consumido pela API.
 - **kubectl** para aplicação e gerenciamento dos manifests.
+- **Helm** para instalação de charts como New Relic.
+- **New Relic** para observabilidade, monitoramento e APM.
 - **GitHub Actions** para execução da pipeline de deploy/destroy.
 - **Docker** para distribuição das imagens das aplicações.
 
@@ -101,14 +105,17 @@ flowchart TB
 
 ---
 
-| Variável              |
-| --------------------- |
-| AWS_ACCESS_KEY_ID     |
-| AWS_SECRET_ACCESS_KEY |
-| AWS_SESSION_TOKEN     |
-| AWS_DEFAULT_REGION    |
-| JWT_KEY               |
-| EMAIL_PASSWORD        |
+| Variável              | Descrição                                                      |
+| --------------------- | -------------------------------------------------------------- |
+| AWS_ACCESS_KEY_ID     | Chave de acesso da AWS                                         |
+| AWS_SECRET_ACCESS_KEY | Chave secreta da AWS                                           |
+| AWS_SESSION_TOKEN     | Token de sessão da AWS                                         |
+| AWS_DEFAULT_REGION    | Região padrão da AWS                                           |
+| JWT_KEY               | Chave secreta para geração de tokens JWT                       |
+| EMAIL_PASSWORD        | Senha para envio de emails                                     |
+| MEDIATR_LICENSE_KEY   | Chave de licença do MediatR (opcional)                         |
+| AUTOMAPPER_LICENSE_KEY| Chave de licença do AutoMapper (opcional)                      |
+| NEW_RELIC_LICENSE_KEY | Chave de licença do New Relic para APM e monitoramento        |
 
 ---
 
@@ -167,6 +174,30 @@ Configure o seu AWS com o Kubectl.
 aws eks update-kubeconfig --name mechermes-eks
 ```
 
+---
+
+### Instalação do Helm
+
+Instale o Helm (gerenciador de pacotes Kubernetes).
+
+**Windows (via Chocolatey):**
+
+```powershell
+choco install kubernetes-helm
+```
+
+**Linux/MacOS:**
+
+```bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+
+Verifique a instalação:
+
+```bash
+helm version
+```
+
 ### Criação do Namespace
 
 Define ambiente de Homologação ou Produção
@@ -177,6 +208,50 @@ $ENVIRONMENT="prd" ou "hml"
 
 ```bash
 kubectl apply -f k8s/overlays/$ENVIRONMENT/namespace.yaml
+```
+
+---
+
+### Instalação do New Relic
+
+Adicione o repositório Helm do New Relic:
+
+```bash
+helm repo add newrelic https://helm-charts.newrelic.com
+helm repo update
+```
+
+Limpe recursos conflitantes (se existirem):
+
+```bash
+kubectl delete mutatingwebhookconfiguration newrelic-bundle-nri-metadata-injection --ignore-not-found=true
+kubectl delete deployment newrelic-bundle-nri-kube-events -n newrelic --ignore-not-found=true
+```
+
+Defina a chave de licença do New Relic:
+
+```bash
+$NEW_RELIC_LICENSE_KEY="YOUR_NEW_RELIC_LICENSE_KEY"
+```
+
+Instale o New Relic nri-bundle:
+
+```bash
+helm upgrade --install newrelic-bundle newrelic/nri-bundle `
+  --namespace newrelic `
+  --create-namespace `
+  --values k8s/base/newrelic/helm-values.yaml `
+  --set global.licenseKey=$NEW_RELIC_LICENSE_KEY
+```
+
+Crie o secret do New Relic no namespace da aplicação:
+
+```bash
+kubectl create secret generic newrelic-license-secret `
+  --from-literal=license-key=$NEW_RELIC_LICENSE_KEY `
+  --from-literal=otlp-header="api-key=$NEW_RELIC_LICENSE_KEY" `
+  --namespace mecanica-hermes-$ENVIRONMENT `
+  --dry-run=client -o yaml | kubectl apply -f -
 ```
 
 ---
@@ -201,20 +276,55 @@ Extraia a senha do database
 $DB_PASSWORD=aws secretsmanager get-secret-value --secret-id $DB_ARN --query SecretString --output text | ConvertFrom-Json | Select-Object -ExpandProperty password
 ```
 
-Crie a Secret no Cluster
+Defina as variáveis de ambiente necessárias:
 
 ```bash
-kubectl create secret generic app-secret --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=mechermesdb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" --from-literal=Jwt__Key="THATSmyAw3SomeSecretTokenThatNeedsToCh@angeBeforeDeploy" --from-literal=EmailSender__Password="xFCsMj6a4NWbZgr5" -n mecanica-hermes-$ENVIRONMENT
+$JWT_KEY="YOUR_JWT_SECRET_KEY"
+$EMAIL_PASSWORD="YOUR_EMAIL_PASSWORD"
+$MEDIATR_LICENSE_KEY="YOUR_MEDIATR_LICENSE_KEY"  # Opcional
+$AUTOMAPPER_LICENSE_KEY="YOUR_AUTOMAPPER_LICENSE_KEY"  # Opcional
+```
+
+Crie o secret da aplicação:
+
+```bash
+kubectl create secret generic app-secret `
+  --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=mechermesdb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" `
+  --from-literal=Jwt__Key=$JWT_KEY `
+  --from-literal=EmailSender__Password=$EMAIL_PASSWORD `
+  --from-literal=MediatR__LicenseKey=$MEDIATR_LICENSE_KEY `
+  --from-literal=AutoMapper__LicenseKey=$AUTOMAPPER_LICENSE_KEY `
+  --from-literal=NEW_RELIC_LICENSE_KEY=$NEW_RELIC_LICENSE_KEY `
+  -n mecanica-hermes-$ENVIRONMENT `
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+---
+
+### Configuração da Tag da Imagem (Opcional)
+
+Por padrão, o Kustomize usará a tag `main`. Para usar uma tag específica:
+
+```bash
+cd k8s/overlays/$ENVIRONMENT
+kustomize edit set image mechermes/mecanica-hermes-api=mechermes/mecanica-hermes-api:YOUR_TAG
+cd ../../..
 ```
 
 ---
 
 ### Deploy das Aplicações
 
-Deploy no ambiente selecionado
+Deploy no ambiente selecionado:
 
 ```bash
 kubectl apply -k k8s/overlays/$ENVIRONMENT
+```
+
+Aguarde os pods iniciarem:
+
+```bash
+kubectl get pods -n mecanica-hermes-$ENVIRONMENT -w
 ```
 
 ---
