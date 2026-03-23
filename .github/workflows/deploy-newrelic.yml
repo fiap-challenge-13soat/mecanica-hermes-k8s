@@ -43,6 +43,32 @@ jobs:
           helm repo add newrelic https://helm-charts.newrelic.com
           helm repo update
 
+      - name: Cleanup old Helm releases
+        run: |
+          echo "Cleaning up old Helm release secrets (keeping last 3)..."
+          # Get all Helm release secrets sorted by creation time, skip the 3 most recent
+          OLD_SECRETS=$(kubectl get secrets -n newrelic \
+            -l owner=helm,name=newrelic-bundle \
+            --sort-by=.metadata.creationTimestamp \
+            -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | head -n -3)
+          
+          if [ -n "$OLD_SECRETS" ]; then
+            echo "$OLD_SECRETS" | xargs -r kubectl delete secret -n newrelic --ignore-not-found=true
+            echo "Deleted old release secrets"
+          else
+            echo "No old secrets to clean up"
+          fi
+        continue-on-error: true
+
+      - name: Remove conflicting webhook configurations
+        run: |
+          echo "Removing conflicting webhook configurations..."
+          kubectl delete mutatingwebhookconfiguration newrelic-bundle-nri-metadata-injection --ignore-not-found=true
+          kubectl delete validatingwebhookconfiguration --all --ignore-not-found=true
+          sleep 3
+          echo "Webhook cleanup complete"
+        continue-on-error: true
+
       - name: Install/upgrade nri-bundle
         run: |
           helm upgrade --install newrelic-bundle newrelic/nri-bundle \
