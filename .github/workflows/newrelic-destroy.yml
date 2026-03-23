@@ -1,4 +1,4 @@
-name: Destroy - New Relic Infrastructure
+name: New Relic - Destroy
 
 on:
   workflow_dispatch:
