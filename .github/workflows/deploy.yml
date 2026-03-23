@@ -65,7 +65,6 @@ jobs:
 
       - name: Add Helm repos
         run: |
-          helm repo add newrelic https://helm-charts.newrelic.com
           helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
           helm repo update
 
@@ -74,29 +73,6 @@ jobs:
           helm upgrade --install metrics-server metrics-server/metrics-server \
             --namespace kube-system \
             --set args[0]="--kubelet-insecure-tls"
-    
-      - name: Cleanup conflicting webhook resources
-        run: |
-          kubectl delete mutatingwebhookconfiguration newrelic-bundle-nri-metadata-injection --ignore-not-found=true
-          kubectl delete deployment newrelic-bundle-nri-kube-events -n newrelic --ignore-not-found=true
-          sleep 5
-        continue-on-error: true
-    
-      - name: Install/upgrade nri-bundle
-        run: |
-          helm upgrade --install newrelic-bundle newrelic/nri-bundle \
-            --namespace newrelic \
-            --create-namespace \
-            --values ./base/newrelic/helm-values.yaml \
-            --set global.licenseKey=${{ secrets.NEW_RELIC_LICENSE_KEY }}
-    
-      - name: Create New Relic license secret in app namespace
-        run: |
-          kubectl create secret generic newrelic-license-secret \
-            --from-literal=license-key=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
-            --from-literal=otlp-header="api-key=${{ secrets.NEW_RELIC_LICENSE_KEY }}" \
-            --namespace mecanica-hermes-${{ inputs.environment }} \
-            --dry-run=client -o yaml | kubectl apply -f -
 
       # Extract Cognito User Pool ID using AWS CLI
       - name: Get Cognito Configuration
