@@ -1,0 +1,108 @@
+name: Destroy - New Relic Infrastructure
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  destroy:
+    name: "Destroy New Relic Monitoring"
+    runs-on: ubuntu-latest
+    environment: aws
+
+    defaults:
+      run:
+        working-directory: ./k8s
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ vars.AWS_DEFAULT_REGION }}
+
+      - name: Install Kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure Kubeconfig
+        run: aws eks update-kubeconfig --name mechermes-eks
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Remove webhook configurations
+        run: |
+          echo "Removing webhook configurations..."
+          kubectl delete mutatingwebhookconfiguration newrelic-bundle-nri-metadata-injection --ignore-not-found=true
+          kubectl delete validatingwebhookconfiguration --all --ignore-not-found=true
+          sleep 5
+          echo "Webhook cleanup complete"
+        continue-on-error: true
+
+      - name: Delete New Relic license secrets from app namespaces
+        run: |
+          echo "Deleting New Relic secrets from application namespaces..."
+          kubectl delete secret newrelic-license-secret -n mecanica-hermes-hml --ignore-not-found=true
+          kubectl delete secret newrelic-license-secret -n mecanica-hermes-prd --ignore-not-found=true
+          echo "Application namespace secrets deleted"
+        continue-on-error: true
+
+      - name: Uninstall New Relic Helm release
+        run: |
+          echo "Uninstalling New Relic bundle..."
+          helm uninstall newrelic-bundle -n newrelic --wait --timeout=120s
+          echo "New Relic bundle uninstalled"
+        continue-on-error: true
+
+      - name: Delete New Relic namespace
+        run: |
+          echo "Deleting New Relic namespace..."
+          kubectl delete namespace newrelic --timeout=60s --wait=false
+          echo "New Relic namespace deletion initiated"
+        continue-on-error: true
+
+      - name: Force cleanup if namespace stuck
+        run: |
+          echo "Checking if namespace is stuck in Terminating state..."
+          NS_STATUS=$(kubectl get namespace newrelic -o jsonpath='{.status.phase}' 2>/dev/null || echo "NotFound")
+          
+          if [ "$NS_STATUS" = "Terminating" ]; then
+            echo "Namespace stuck in Terminating state. Removing finalizers..."
+            kubectl get namespace newrelic -o json > temp-ns.json
+            cat temp-ns.json | jq '.spec.finalizers = []' | kubectl replace --raw /api/v1/namespaces/newrelic/finalize -f -
+            rm -f temp-ns.json
+            echo "Finalizers removed"
+          else
+            echo "Namespace status: $NS_STATUS"
+          fi
+        continue-on-error: true
+
+      - name: Verify cleanup
+        run: |
+          echo "## New Relic Destruction Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          NS_EXISTS=$(kubectl get namespace newrelic 2>/dev/null && echo "yes" || echo "no")
+          if [ "$NS_EXISTS" = "no" ]; then
+            echo "✅ New Relic namespace deleted successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ New Relic namespace may still be terminating" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          WEBHOOK_EXISTS=$(kubectl get mutatingwebhookconfiguration newrelic-bundle-nri-metadata-injection 2>/dev/null && echo "yes" || echo "no")
+          if [ "$WEBHOOK_EXISTS" = "no" ]; then
+            echo "✅ Webhooks removed successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Some webhooks may still exist" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "New Relic infrastructure has been removed from the cluster" >> $GITHUB_STEP_SUMMARY
