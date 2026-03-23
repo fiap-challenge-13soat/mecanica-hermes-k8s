@@ -6,3 +6,8 @@ commonLabels:
 resources:
   - ../../base
   - namespace.yaml
+patches:
+  - path: configmap-patch.yaml
+    target:
+      kind: ConfigMap
+      name: mecanica-hermes-api-config
