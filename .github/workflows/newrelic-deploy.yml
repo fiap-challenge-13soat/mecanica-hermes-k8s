@@ -1,4 +1,4 @@
-name: Deploy - New Relic Infrastructure
+name: New Relic - Deploy
 
 on:
   workflow_dispatch:
