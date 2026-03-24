@@ -6,6 +6,8 @@ newrelic-infrastructure:
     kubeletFineGrainedAuth: true  # Required for EKS 1.35+ with Kubelet Authorization Mode (KEP-2862)
   kubelet:
     enabled: true
+    hostNetwork: true  # Required for kubelet to access node's network namespace
+    dnsPolicy: ClusterFirstWithHostNet  # Required when hostNetwork is true
     config:
       validateKubeletCertificate: false
 
