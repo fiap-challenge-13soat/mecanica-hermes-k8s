@@ -2,7 +2,9 @@ newrelic-infrastructure:
   # newrelic-infrastructure.enabled -- Install the [`newrelic-infrastructure` chart](https://github.com/newrelic/nri-kubernetes/tree/main/charts/newrelic-infrastructure)
   enabled: true
   kubelet:
+    enabled: true
     podSpec:
+      hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
 
 nri-prometheus:
@@ -112,7 +114,7 @@ global:
 
   # -- (bool) Sets pod's hostNetwork
   # @default -- false
-  hostNetwork: true
+  hostNetwork: false
   # -- Sets pod's dnsConfig
   dnsConfig: {}
 

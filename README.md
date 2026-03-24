@@ -2,6 +2,8 @@
 
 Este repositório é responsável por realizar o deploy do projeto.
 
+> Para documentação técnica detalhada (arquitetura, RFCs e ADRs), consulte a pasta [`docs/`](./docs/).
+
 ---
 
 ## Tecnologias Utilizadas
@@ -132,16 +134,22 @@ aws sts get-session-token
 ---
 Dispare a Action Trigger manual para realizar o deploy do ambiente:
 
-- `Kubernetes Deploy`.
+- `API - Deploy` (inputs: `environment` e `image_tag`).
 
 ---
 
 ### Destroy Environment
 
 ---
-Dispare a Action Trigger manual para realizar o deploy do ambiente:
+Dispare a Action Trigger manual para realizar a destruição do ambiente:
 
-- `Kubernetes Destroy`.
+- `API - Destroy` (input: `environment`).
+
+Para observabilidade, também existem os workflows:
+
+- `New Relic - Deploy`
+- `New Relic - Destroy`
+- `Force Cleanup - Stuck Namespace`
 
 ---
 
@@ -267,7 +275,7 @@ $DB_ENDPOINT=aws rds describe-db-instances --db-instance-identifier mechermes-$E
 Extraia o ARN do database
 
 ```bash
-$DB_ARN=aws rds describe-db-instances --db-instance-identifier mechermes-rds --query "DBInstances[0].MasterUserSecret.SecretArn" --output text
+$DB_ARN=aws rds describe-db-instances --db-instance-identifier mechermes-$ENVIRONMENT-rds --query "DBInstances[0].MasterUserSecret.SecretArn" --output text
 ```
 
 Extraia a senha do database
@@ -346,3 +354,11 @@ kubectl get svc -n mecanica-hermes-$ENVIRONMENT
 ### Correção de Problemas
 
 > Este processo foi amplamente testado, mas caso ocorra algum erro durante a sua execução, sugerimos abrir o ambiente no VSCode e solicitar ajuda ao Co-Pilot.
+
+---
+
+## Documentação rica
+
+- [Arquitetura do repositório](./docs/Arquitetura.md)
+- [RFCs](./docs/RFCs.md)
+- [ADRs](./docs/ADRs.md)
