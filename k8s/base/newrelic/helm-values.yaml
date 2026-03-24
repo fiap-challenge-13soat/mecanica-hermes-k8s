@@ -1,11 +1,11 @@
 newrelic-infrastructure:
   # newrelic-infrastructure.enabled -- Install the [`newrelic-infrastructure` chart](https://github.com/newrelic/nri-kubernetes/tree/main/charts/newrelic-infrastructure)
   enabled: true
+  privileged: true
   kubelet:
     enabled: true
-    podSpec:
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
+    config:
+      validateKubeletCertificate: false
 
 nri-prometheus:
   # nri-prometheus.enabled -- Install the [`nri-prometheus` chart](https://github.com/newrelic/nri-prometheus/tree/main/charts/nri-prometheus)
