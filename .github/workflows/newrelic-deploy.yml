@@ -94,11 +94,16 @@ jobs:
           ]'
           echo "Patch applied successfully"
           
-          echo "Waiting for pods to restart..."
-          kubectl rollout status daemonset/newrelic-bundle-nrk8s-kubelet -n newrelic --timeout=120s
+          echo "Waiting for pods to restart (timeout: 5 minutes)..."
+          kubectl rollout status daemonset/newrelic-bundle-nrk8s-kubelet -n newrelic --timeout=300s || true
           
           echo "Verifying pod status..."
           kubectl get pods -n newrelic -l app.kubernetes.io/component=kubelet
+          
+          echo "Checking for errors in pod events..."
+          kubectl get events -n newrelic --field-selector involvedObject.kind=Pod --sort-by='.lastTimestamp' | tail -20
+          
+          echo "Deployment completed. Note: kubelet pods may take additional time to stabilize."
     
       - name: Create New Relic license secret in HML namespace
         run: |

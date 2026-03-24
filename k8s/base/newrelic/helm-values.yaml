@@ -2,6 +2,8 @@ newrelic-infrastructure:
   # newrelic-infrastructure.enabled -- Install the [`newrelic-infrastructure` chart](https://github.com/newrelic/nri-kubernetes/tree/main/charts/newrelic-infrastructure)
   enabled: true
   privileged: true
+  rbac:
+    kubeletFineGrainedAuth: true  # Required for EKS 1.35+ with Kubelet Authorization Mode (KEP-2862)
   kubelet:
     enabled: true
     config:
