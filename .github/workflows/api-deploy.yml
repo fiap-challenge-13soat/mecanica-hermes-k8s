@@ -73,6 +73,7 @@ jobs:
           helm upgrade --install metrics-server metrics-server/metrics-server \
             --namespace kube-system \
             --set args[0]="--kubelet-insecure-tls"
+        continue-on-error: true
 
       # Extract Cognito User Pool ID using AWS CLI
       - name: Get Cognito Configuration
