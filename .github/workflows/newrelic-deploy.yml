@@ -77,6 +77,29 @@ jobs:
             --values ./base/newrelic/helm-values.yaml \
             --set global.licenseKey=${{ secrets.NEW_RELIC_LICENSE_KEY }}
     
+      - name: Patch kubelet DaemonSet for hostNetwork
+        run: |
+          echo "Applying hostNetwork patch to kubelet DaemonSet..."
+          kubectl patch daemonset newrelic-bundle-nrk8s-kubelet -n newrelic --type='json' -p='[
+            {
+              "op": "add",
+              "path": "/spec/template/spec/hostNetwork",
+              "value": true
+            },
+            {
+              "op": "replace",
+              "path": "/spec/template/spec/dnsPolicy",
+              "value": "ClusterFirstWithHostNet"
+            }
+          ]'
+          echo "Patch applied successfully"
+          
+          echo "Waiting for pods to restart..."
+          kubectl rollout status daemonset/newrelic-bundle-nrk8s-kubelet -n newrelic --timeout=120s
+          
+          echo "Verifying pod status..."
+          kubectl get pods -n newrelic -l app.kubernetes.io/component=kubelet
+    
       - name: Create New Relic license secret in HML namespace
         run: |
           kubectl create secret generic newrelic-license-secret \
