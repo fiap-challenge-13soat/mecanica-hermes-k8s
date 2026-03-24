@@ -10,6 +10,23 @@ newrelic-infrastructure:
     dnsPolicy: ClusterFirstWithHostNet  # Required when hostNetwork is true
     config:
       validateKubeletCertificate: false
+  common:
+    config:
+      customAttributes:
+        clusterName: mecanica-hermes-tf-cluster
+  volumes:
+    - name: kubelet-ca-bundle
+      configMap:
+        name: kubelet-ca-bundle
+  volumeMounts:
+    - name: kubelet-ca-bundle
+      mountPath: /etc/newrelic-infra/kubelet-ca
+      readOnly: true
+  extraEnv:
+    - name: NRIA_CA_BUNDLE_DIR
+      value: /etc/newrelic-infra/kubelet-ca
+    - name: NRIA_CA_BUNDLE_FILE
+      value: ca-bundle.crt
 
 nri-prometheus:
   # nri-prometheus.enabled -- Install the [`nri-prometheus` chart](https://github.com/newrelic/nri-prometheus/tree/main/charts/nri-prometheus)
