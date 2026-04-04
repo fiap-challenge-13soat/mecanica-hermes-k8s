@@ -38,9 +38,8 @@ Este repositório é responsável por realizar o deploy do projeto.
 
 Nossa infraestrutura para disponibilizar um ambiente completo e funcional é composta por três passos sequenciais que são executados em diferentes repositórios:
 
-1. [Mecânica Hermes - Infra Kubernetes](https://github.com/fiap-challenge-13soat/mecanica-hermes-infra)
-2. [Mecânica Hermes - Infra Database](https://github.com/fiap-challenge-13soat/mecanica-hermes-db)
-3. Mecânica Hermes - Deploy Kubernetes (Este projeto)
+1. [Mecânica Hermes - Infra Kubernetes e Database](https://github.com/fiap-challenge-13soat/mecanica-hermes-infra) (módulos `aws/` e `db/`)
+2. Mecânica Hermes - Deploy Kubernetes (Este projeto)
 
 ---
 
