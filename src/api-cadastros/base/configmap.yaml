@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mecanica-hermes-api-config
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_URLS: "http://+:8080"
+  Logging__LogLevel__Default: "Information"
+  Jwt__Issuer: "MecanicaHermes"
+  EmailSender__Enabled: "true"
+  EmailSender__SmtpServer: "smtp.gmail.com"
+  EmailSender__SmtpPort: "465"
+  EmailSender__SslRequired: "true"
+  EmailSender__UserName: "rogeriosoftplan@gmail.com"
+  EmailSender__SenderInformation__Name: "Mecânica Hermes"
+  EmailSender__SenderInformation__Address: "rogeriosoftplan@gmail.com"
+  # OpenTelemetry OTLP export (New Relic)
+  MY_CLUSTER_NAME: "mecanica-hermes-tf-cluster"
+  OTEL_SERVICE_NAME: "mecanica-hermes-api"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "https://otlp.nr-data.net"
+  OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+  OTEL_EXPORTER_OTLP_COMPRESSION: "gzip"
+  OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT: "4095"
+  OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: "delta"
+  OTEL_TRACES_EXPORTER: "otlp"
+  OTEL_METRICS_EXPORTER: "otlp"
+  OTEL_LOGS_EXPORTER: "otlp"

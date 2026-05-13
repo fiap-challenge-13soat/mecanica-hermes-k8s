@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mecanica-hermes-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mecanica-hermes-api
+  template:
+    metadata:
+      name: mecanica-hermes-api
+      labels:
+        app: mecanica-hermes-api
+    spec:
+      containers:
+        - name: mecanica-hermes-api
+          image: mechermes/mecanica-hermes-api:main
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: mecanica-hermes-api-config
+            - secretRef:
+                name: app-secret
+
+          env:
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: MY_CLUSTER_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: mecanica-hermes-api-config
+                  key: MY_CLUSTER_NAME
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: newrelic-license-secret
+                  key: otlp-header
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.instance.id=$(MY_POD_NAME),service.namespace=$(MY_POD_NAMESPACE),k8s.pod.name=$(MY_POD_NAME),k8s.namespace.name=$(MY_POD_NAMESPACE),k8s.node.name=$(MY_NODE_NAME),k8s.cluster.name=$(MY_CLUSTER_NAME)"
+
+          startupProbe:
+            httpGet:
+              path: "/healthz/live"
+              port: 8080
+            initialDelaySeconds: 60
+            failureThreshold: 30
+            periodSeconds: 5
+
+          livenessProbe:
+            httpGet:
+              path: "/healthz/live"
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            failureThreshold: 3
+            timeoutSeconds: 5
+
+          readinessProbe:
+            httpGet:
+              path: "/healthz/ready"
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 800m
+              memory: 1024Mi
