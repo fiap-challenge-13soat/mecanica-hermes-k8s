@@ -1,27 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mecanica-hermes-api
+  name: mecanica-hermes-api-cadastros
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mecanica-hermes-api
+      app: mecanica-hermes-api-cadastros
   template:
     metadata:
-      name: mecanica-hermes-api
+      name: mecanica-hermes-api-cadastros
       labels:
-        app: mecanica-hermes-api
+        app: mecanica-hermes-api-cadastros
     spec:
       containers:
-        - name: mecanica-hermes-api
-          image: mechermes/mecanica-hermes-api:main
+        - name: mecanica-hermes-api-cadastros
+          image: mechermes/mecanica-hermes-cadastros:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:
             - configMapRef:
-                name: mecanica-hermes-api-config
+                name: mecanica-hermes-api-cadastros-config
             - secretRef:
                 name: app-secret
 
@@ -41,7 +41,7 @@ spec:
             - name: MY_CLUSTER_NAME
               valueFrom:
                 configMapKeyRef:
-                  name: mecanica-hermes-api-config
+                  name: mecanica-hermes-api-cadastros-config
                   key: MY_CLUSTER_NAME
             - name: OTEL_EXPORTER_OTLP_HEADERS
               valueFrom:

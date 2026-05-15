@@ -3,6 +3,15 @@ name: API - Destroy
 on:
   workflow_dispatch:
     inputs:
+      service:
+        description: "Target service"
+        required: true
+        default: "api-cadastros"
+        type: choice
+        options:
+          - api-cadastros
+          - api-ordem-servico
+          - api-pagamentos
       environment:
         description: "Target environment"
         required: true
@@ -23,18 +32,14 @@ jobs:
     env:
       ENVIRONMENT: ${{ inputs.environment || vars.environment }}
 
-    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
     defaults:
       run:
-        working-directory: ./k8s
         shell: bash
 
     steps:
-      # Checkout the repository to the GitHub Actions runner
       - name: Checkout
         uses: actions/checkout@v6
 
-      # Configure AWS Credentials for AWS CLI and other AWS SDKs and tools
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -43,15 +48,13 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ vars.AWS_DEFAULT_REGION }}
 
-      # Install Kubectl
       - name: Install Kubectl
         uses: azure/setup-kubectl@v4
 
-      # Configure Kubeconfig to connect to EKS Cluster
       - name: Configure Kubeconfig
         run: aws eks update-kubeconfig --name mechermes-eks
 
-      # Apply Kubernetes - Destroy Applications
       - name: Destroy Kubernetes Applications
-        run: kubectl delete -k ./overlays/${{ inputs.environment }} --timeout=60s --wait=false
+        working-directory: src/${{ inputs.service }}/overlays/${{ inputs.environment }}
+        run: kubectl delete -k . --timeout=60s --wait=false
         continue-on-error: true

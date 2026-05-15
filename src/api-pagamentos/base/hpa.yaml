@@ -1,12 +1,12 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: mecanica-hermes-api-hpa
+  name: mecanica-hermes-api-pagamentos-hpa
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: mecanica-hermes-api
+    name: mecanica-hermes-api-pagamentos
   minReplicas: 2
   maxReplicas: 5
   metrics:
