@@ -5,3 +5,6 @@ metadata:
 data:
   AUTH__CLIENTE_SCOPE: "mechermes/client"
   AUTH__ADMIN_SCOPE: "mechermes/admin"
+  ORDEM_SERVICO_API__BASE_URL: "http://mecanica-hermes-api-ordem-servico.mecanica-hermes-ordem-servico-hml.svc.cluster.local"
+  PAGAMENTO_API__BASE_URL: "http://mecanica-hermes-api-pagamentos.mecanica-hermes-pagamentos-hml.svc.cluster.local"
+  APP__BASE_URL: "http://mecanica-hermes-api-cadastros.mecanica-hermes-cadastros-hml.svc.cluster.local"

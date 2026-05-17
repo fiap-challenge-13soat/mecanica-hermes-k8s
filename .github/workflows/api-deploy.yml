@@ -63,6 +63,14 @@ jobs:
         working-directory: src/${{ inputs.service }}/overlays/${{ inputs.environment }}
         run: kubectl apply -f namespace.yaml
 
+      - name: Create New Relic OTLP Secret
+        run: |
+          NAMESPACE=$(kubectl get -f src/${{ inputs.service }}/overlays/${{ inputs.environment }}/namespace.yaml -o jsonpath='{.metadata.name}')
+          kubectl create secret generic newrelic-license-secret \
+            --from-literal=otlp-header="Api-Key=${{ secrets.NEW_RELIC_LICENSE_KEY }}" \
+            -n "$NAMESPACE" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Install Helm
         uses: azure/setup-helm@v4
 
@@ -84,7 +92,41 @@ jobs:
           USER_POOL_ID=$(aws cognito-idp list-user-pools --max-results 60 \
             --query "UserPools[?Name=='mechermes-${{ env.ENVIRONMENT }}-userpool'].Id | [0]" \
             --output text)
-          echo "authority=https://cognito-idp.us-east-1.amazonaws.com/$USER_POOL_ID" >> $GITHUB_OUTPUT
+          echo "authority=https://cognito-idp.${{ vars.AWS_DEFAULT_REGION }}.amazonaws.com/$USER_POOL_ID" >> $GITHUB_OUTPUT
+
+      - name: Get Amazon MQ Configuration
+        id: mq
+        run: |
+          MQ_SECRET=$(aws secretsmanager get-secret-value \
+            --secret-id mechermes-mq-secret \
+            --query SecretString --output text)
+          MQ_USER=$(echo "$MQ_SECRET" | jq -r '.username')
+          MQ_PASS=$(echo "$MQ_SECRET" | jq -r '.password')
+          MQ_ENDPOINT=$(echo "$MQ_SECRET" | jq -r '.endpoint')
+          # Build amqps://user:pass@host:5671 from the stored endpoint
+          MQ_HOST_ONLY="${MQ_ENDPOINT#amqps://}"
+          MQ_CONN="amqps://${MQ_USER}:${MQ_PASS}@${MQ_HOST_ONLY}"
+          echo "::add-mask::$MQ_PASS"
+          echo "::add-mask::$MQ_CONN"
+          echo "connection_string=$MQ_CONN" >> $GITHUB_OUTPUT
+
+      - name: Get Cognito M2M Credentials
+        id: cognito_m2m
+        run: |
+          COGNITO_SECRET=$(aws secretsmanager get-secret-value \
+            --secret-id mechermes-${{ env.ENVIRONMENT }}-cognito-credentials \
+            --query SecretString --output text)
+          M2M_CLIENT_ID=$(echo "$COGNITO_SECRET" | jq -r '.client_id')
+          M2M_CLIENT_SECRET=$(echo "$COGNITO_SECRET" | jq -r '.client_secret')
+          M2M_TOKEN_ENDPOINT=$(echo "$COGNITO_SECRET" | jq -r '.token_endpoint // empty')
+          if [ -z "$M2M_TOKEN_ENDPOINT" ]; then
+            COGNITO_DOMAIN=$(echo "$COGNITO_SECRET" | jq -r '.domain')
+            M2M_TOKEN_ENDPOINT="https://${COGNITO_DOMAIN}.auth.${{ vars.AWS_DEFAULT_REGION }}.amazoncognito.com/oauth2/token"
+          fi
+          echo "::add-mask::$M2M_CLIENT_SECRET"
+          echo "client_id=$M2M_CLIENT_ID" >> $GITHUB_OUTPUT
+          echo "client_secret=$M2M_CLIENT_SECRET" >> $GITHUB_OUTPUT
+          echo "token_endpoint=$M2M_TOKEN_ENDPOINT" >> $GITHUB_OUTPUT
 
       # ── api-cadastros: Postgres only ───────────────────────────────────────
       - name: Create Secrets (api-cadastros)
@@ -100,6 +142,8 @@ jobs:
             --secret-id "$DB_ARN" --query SecretString --output text | jq -r '.password')
           kubectl create secret generic app-secret \
             --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=cadastrosdb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" \
+            --from-literal=MASSTRANSIT__TRANSPORT_SERVICE="RabbitMq" \
+            --from-literal=MASSTRANSIT__CONNECTION_STRING="${{ steps.mq.outputs.connection_string }}" \
             --from-literal=Jwt__Key="${{ secrets.JWT_KEY }}" \
             --from-literal=EmailSender__Password="${{ secrets.EMAIL_PASSWORD }}" \
             --from-literal=MediatR__LicenseKey="${{ secrets.MEDIATR_LICENSE_KEY }}" \
@@ -107,6 +151,8 @@ jobs:
             --from-literal=NEW_RELIC_LICENSE_KEY="${{ secrets.NEW_RELIC_LICENSE_KEY }}" \
             --from-literal=AUTH__AUTHORITY="${{ steps.cognito.outputs.authority }}" \
             --from-literal=AUTH__ISSUER="${{ steps.cognito.outputs.authority }}" \
+            --from-literal=AUTH__SERVICO_SCOPE="mechermes/admin" \
+            --from-literal=WEBHOOK__SIGNING_SECRET="${{ secrets.WEBHOOK_SIGNING_SECRET }}" \
             -n mecanica-hermes-cadastros-${{ env.ENVIRONMENT }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
@@ -123,7 +169,9 @@ jobs:
             --db-cluster-identifier mechermes-${{ env.ENVIRONMENT }}-docdb \
             --query "DBClusters[0].Endpoint" --output text)
           kubectl create secret generic app-secret \
-            --from-literal=ConnectionStrings__MongoDb="mongodb://$DOCDB_USER:$DOCDB_PASS@$DOCDB_ENDPOINT:27017/?retryWrites=false" \
+            --from-literal=MONGODB__CONNECTION_STRING="mongodb://$DOCDB_USER:$DOCDB_PASS@$DOCDB_ENDPOINT:27017/?retryWrites=false" \
+            --from-literal=MASSTRANSIT__TRANSPORT_SERVICE="RabbitMq" \
+            --from-literal=MASSTRANSIT__CONNECTION_STRING="${{ steps.mq.outputs.connection_string }}" \
             --from-literal=Jwt__Key="${{ secrets.JWT_KEY }}" \
             --from-literal=EmailSender__Password="${{ secrets.EMAIL_PASSWORD }}" \
             --from-literal=MediatR__LicenseKey="${{ secrets.MEDIATR_LICENSE_KEY }}" \
@@ -131,6 +179,17 @@ jobs:
             --from-literal=NEW_RELIC_LICENSE_KEY="${{ secrets.NEW_RELIC_LICENSE_KEY }}" \
             --from-literal=AUTH__AUTHORITY="${{ steps.cognito.outputs.authority }}" \
             --from-literal=AUTH__ISSUER="${{ steps.cognito.outputs.authority }}" \
+            --from-literal=MERCADO_PAGO__ACCESS_TOKEN="${{ secrets.MERCADO_PAGO_ACCESS_TOKEN }}" \
+            --from-literal=MERCADO_PAGO__PUBLIC_KEY="${{ secrets.MERCADO_PAGO_PUBLIC_KEY }}" \
+            --from-literal=MERCADO_PAGO__WEBHOOK_SECRET="${{ secrets.MERCADO_PAGO_WEBHOOK_SECRET }}" \
+            --from-literal=MERCADO_PAGO__NOTIFICATION_URL="${{ vars.API_GATEWAY_URL }}/api/webhooks/mercadopago" \
+            --from-literal=MERCADO_PAGO__SUCCESS_URL="${{ vars.APP_BASE_URL }}" \
+            --from-literal=MERCADO_PAGO__FAILURE_URL="${{ vars.APP_BASE_URL }}" \
+            --from-literal=MERCADO_PAGO__PENDING_URL="${{ vars.APP_BASE_URL }}" \
+            --from-literal=M2M__TOKEN_ENDPOINT="${{ steps.cognito_m2m.outputs.token_endpoint }}" \
+            --from-literal=M2M__CLIENT_ID="${{ steps.cognito_m2m.outputs.client_id }}" \
+            --from-literal=M2M__CLIENT_SECRET="${{ steps.cognito_m2m.outputs.client_secret }}" \
+            --from-literal=M2M__SCOPE="mechermes/admin" \
             -n mecanica-hermes-pagamentos-${{ env.ENVIRONMENT }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
@@ -156,7 +215,9 @@ jobs:
             --query "DBClusters[0].Endpoint" --output text)
           kubectl create secret generic app-secret \
             --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=ordemservicodb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" \
-            --from-literal=ConnectionStrings__MongoDb="mongodb://$DOCDB_USER:$DOCDB_PASS@$DOCDB_ENDPOINT:27017/?retryWrites=false" \
+            --from-literal=MONGODB__CONNECTION_STRING="mongodb://$DOCDB_USER:$DOCDB_PASS@$DOCDB_ENDPOINT:27017/?retryWrites=false" \
+            --from-literal=MASSTRANSIT__TRANSPORT_SERVICE="RabbitMq" \
+            --from-literal=MASSTRANSIT__CONNECTION_STRING="${{ steps.mq.outputs.connection_string }}" \
             --from-literal=Jwt__Key="${{ secrets.JWT_KEY }}" \
             --from-literal=EmailSender__Password="${{ secrets.EMAIL_PASSWORD }}" \
             --from-literal=MediatR__LicenseKey="${{ secrets.MEDIATR_LICENSE_KEY }}" \
@@ -164,6 +225,7 @@ jobs:
             --from-literal=NEW_RELIC_LICENSE_KEY="${{ secrets.NEW_RELIC_LICENSE_KEY }}" \
             --from-literal=AUTH__AUTHORITY="${{ steps.cognito.outputs.authority }}" \
             --from-literal=AUTH__ISSUER="${{ steps.cognito.outputs.authority }}" \
+            --from-literal=MONGODB__SAGA_DATABASE="mechermes_saga" \
             -n mecanica-hermes-ordem-servico-${{ env.ENVIRONMENT }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
