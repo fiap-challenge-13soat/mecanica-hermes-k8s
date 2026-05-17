@@ -182,7 +182,7 @@ jobs:
             --from-literal=MERCADO_PAGO__ACCESS_TOKEN="${{ secrets.MERCADO_PAGO_ACCESS_TOKEN }}" \
             --from-literal=MERCADO_PAGO__PUBLIC_KEY="${{ secrets.MERCADO_PAGO_PUBLIC_KEY }}" \
             --from-literal=MERCADO_PAGO__WEBHOOK_SECRET="${{ secrets.MERCADO_PAGO_WEBHOOK_SECRET }}" \
-            --from-literal=MERCADO_PAGO__NOTIFICATION_URL="${{ vars.API_GATEWAY_URL }}/api/webhooks/mercadopago" \
+            --from-literal=MERCADO_PAGO__NOTIFICATION_URL="${{ vars.MERCADO_PAGO_NOTIFICATION_URL }}" \
             --from-literal=MERCADO_PAGO__SUCCESS_URL="${{ vars.APP_BASE_URL }}" \
             --from-literal=MERCADO_PAGO__FAILURE_URL="${{ vars.APP_BASE_URL }}" \
             --from-literal=MERCADO_PAGO__PENDING_URL="${{ vars.APP_BASE_URL }}" \
