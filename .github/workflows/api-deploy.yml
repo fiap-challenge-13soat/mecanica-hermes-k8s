@@ -23,7 +23,7 @@ on:
       image_tag:
         description: "Docker image tag to deploy"
         required: false
-        default: "main"
+        default: "latest"
         type: string
 
 permissions:
