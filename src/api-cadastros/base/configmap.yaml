@@ -27,4 +27,7 @@ data:
   OTEL_LOGS_EXPORTER: "otlp"
   FORWARDED_HEADERS_KNOWN_PROXIES: "10.0.0.0/16"
   RATE_LIMIT_PERMIT_PER_MINUTE: "60"
+  # Set to the API Gateway invoke URL (e.g. https://<id>.execute-api.<region>.amazonaws.com)
+  # so Scalar generates HTTPS server URLs and avoids mixed-content errors in the browser.
+  PUBLIC_URL: ""
 

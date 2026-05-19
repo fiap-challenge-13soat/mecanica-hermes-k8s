@@ -241,6 +241,12 @@ jobs:
           fi
           kustomize edit set image $IMAGE=$IMAGE:${{ inputs.image_tag || 'main' }}
 
+      - name: Set PUBLIC_URL
+        working-directory: src/${{ inputs.service }}/overlays/${{ inputs.environment }}
+        env:
+          PUBLIC_URL: ${{ inputs.environment == 'hml' && vars.API_GATEWAY_HML_URL || vars.API_GATEWAY_PRD_URL }}
+        run: printf '  PUBLIC_URL: "%s"\n' "$PUBLIC_URL" >> configmap-patch.yaml
+
       - name: Deploy to Kubernetes
         working-directory: src/${{ inputs.service }}/overlays/${{ inputs.environment }}
         run: kubectl apply -k .
