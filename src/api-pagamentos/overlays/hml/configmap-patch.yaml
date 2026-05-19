@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mecanica-hermes-api-config
+data:
+  AUTH__CLIENTE_SCOPE: "mechermes/client"
+  AUTH__ADMIN_SCOPE: "mechermes/admin"
+  CADASTROS_API__BASE_URL: "http://mecanica-hermes-api-cadastros.mecanica-hermes-cadastros-hml.svc.cluster.local"
