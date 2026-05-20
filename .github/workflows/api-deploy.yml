@@ -142,7 +142,7 @@ jobs:
             --secret-id "$DB_ARN" --query SecretString --output text | jq -r '.password')
           kubectl create secret generic app-secret \
             --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=cadastrosdb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" \
-            --from-literal=MASSTRANSIT__TRANSPORT_SERVICE="RabbitMq" \
+            --from-literal=MASSTRANSIT__TRANSPORT_SERVICE="AmazonMq" \
             --from-literal=MASSTRANSIT__CONNECTION_STRING="${{ steps.mq.outputs.connection_string }}" \
             --from-literal=Jwt__Key="${{ secrets.JWT_KEY }}" \
             --from-literal=EmailSender__Password="${{ secrets.EMAIL_PASSWORD }}" \
@@ -170,7 +170,7 @@ jobs:
             --query "DBClusters[0].Endpoint" --output text)
           kubectl create secret generic app-secret \
             --from-literal=MONGODB__CONNECTION_STRING="mongodb://$DOCDB_USER:$DOCDB_PASS@$DOCDB_ENDPOINT:27017/?retryWrites=false" \
-            --from-literal=MASSTRANSIT__TRANSPORT_SERVICE="RabbitMq" \
+            --from-literal=MASSTRANSIT__TRANSPORT_SERVICE="AmazonMq" \
             --from-literal=MASSTRANSIT__CONNECTION_STRING="${{ steps.mq.outputs.connection_string }}" \
             --from-literal=Jwt__Key="${{ secrets.JWT_KEY }}" \
             --from-literal=EmailSender__Password="${{ secrets.EMAIL_PASSWORD }}" \
@@ -216,7 +216,7 @@ jobs:
           kubectl create secret generic app-secret \
             --from-literal=ConnectionStrings__DefaultConnection="Host=$DB_ENDPOINT;Database=ordemservicodb;Username=postgres;Password=$DB_PASSWORD;Pooling=true" \
             --from-literal=MONGODB__CONNECTION_STRING="mongodb://$DOCDB_USER:$DOCDB_PASS@$DOCDB_ENDPOINT:27017/?retryWrites=false" \
-            --from-literal=MASSTRANSIT__TRANSPORT_SERVICE="RabbitMq" \
+            --from-literal=MASSTRANSIT__TRANSPORT_SERVICE="AmazonMq" \
             --from-literal=MASSTRANSIT__CONNECTION_STRING="${{ steps.mq.outputs.connection_string }}" \
             --from-literal=Jwt__Key="${{ secrets.JWT_KEY }}" \
             --from-literal=EmailSender__Password="${{ secrets.EMAIL_PASSWORD }}" \
